@@ -1,16 +1,21 @@
-"""Node: generate Python Page Object Model class."""
+"""Generate Python Page Object Model class with AI enhancement."""
 
+import os
 from pathlib import Path
 from typing import Dict, Any
+from langchain_openai import ChatOpenAI
+from src.core.prompts import IMPROVE_POM_PROMPT
 
 
-def generate_pom(name: str, model: Dict[str, Any]) -> str:
+def generate_pom(name: str, model: Dict[str, Any], use_ai: bool = True) -> str:
     """
     Generate a Python POM class file from a PageModel.
+    Uses AI to enhance POMs with best practices if use_ai is True (default).
 
     Args:
         name: Class name (e.g., 'MainPage')
         model: PageModel instance
+        use_ai: Use AI to improve POM with best practices (default: True)
 
     Returns:
         Path to generated POM file
@@ -18,18 +23,34 @@ def generate_pom(name: str, model: Dict[str, Any]) -> str:
     poms_dir = Path("out/poms")
     poms_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate class name if not provided
     if not name:
         name = "GeneratedPage"
 
     class_name = "".join(word.capitalize() for word in name.split("_"))
+    basic_pom = _generate_basic_pom(class_name, model)
+    
+    if use_ai:
+        try:
+            enhanced_pom = _enhance_pom_with_ai(basic_pom, class_name, model)
+        except Exception as e:
+            print(f"AI enhancement failed, using basic POM: {e}")
+            enhanced_pom = basic_pom
+    else:
+        enhanced_pom = basic_pom
 
-    # Build locator initialization code
+    filename = f"{class_name}.py"
+    file_path = poms_dir / filename
+    file_path.write_text(enhanced_pom)
+
+    return str(file_path)
+
+
+def _generate_basic_pom(class_name: str, model: Dict[str, Any]) -> str:
+    """Generate basic POM template."""
     locator_inits = []
     elements = model.get("elements", []) if isinstance(model, dict) else model.elements
     
     for elem in elements:
-        # Handle both dict and object formats
         elem_name = elem.get("name") if isinstance(elem, dict) else elem.name
         locator = elem.get("locator") if isinstance(elem, dict) else elem.locator
         
@@ -42,10 +63,8 @@ def generate_pom(name: str, model: Dict[str, Any]) -> str:
 
     locator_init_str = "\n".join(locator_inits)
 
-    # Build action helper methods (optional)
     action_methods = []
     for elem in elements:
-        # Handle both dict and object formats
         elem_name = elem.get("name") if isinstance(elem, dict) else elem.name
         actions = elem.get("actions") if isinstance(elem, dict) else getattr(elem, "actions", None)
         
@@ -55,8 +74,6 @@ def generate_pom(name: str, model: Dict[str, Any]) -> str:
                 action_methods.append(method_code)
 
     action_methods_str = "\n\n".join(action_methods) if action_methods else ""
-
-    # Get URL from model
     model_url = model.get("url") if isinstance(model, dict) else getattr(model, "url", "https://example.com")
 
     # Build final class
@@ -78,13 +95,26 @@ class {class_name}:
         self.page.goto("{model_url}")
 {f"{action_methods_str}" if action_methods_str else ""}
 """
+    return pom_template
 
-    # Save file
-    filename = f"{class_name}.py"
-    file_path = poms_dir / filename
-    file_path.write_text(pom_template)
 
-    return str(file_path)
+def _enhance_pom_with_ai(basic_pom: str, class_name: str, model: Dict[str, Any]) -> str:
+    """Use AI to enhance POM with best practices."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return basic_pom
+    
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, api_key=api_key)
+    prompt = IMPROVE_POM_PROMPT.format(current_pom=basic_pom)
+    response = llm.invoke(prompt)
+    improved_content = response.content.strip()
+    
+    if improved_content.startswith("```"):
+        improved_content = improved_content[improved_content.find("import"):]
+        if improved_content.endswith("```"):
+            improved_content = improved_content[:improved_content.rfind("```")]
+    
+    return improved_content
 
 
 def _build_locator_code(strategy: str, value: str) -> str:

@@ -18,7 +18,7 @@ from src.tools.crawl_links import crawl_links
 from src.tools.scan_site import scan_site
 from src.tools.extract_model import extract_model
 from src.tools.generate_pom import generate_pom
-from src.tools.generate_tests import generate_tests
+from src.tools.generate_tests_ts import generate_tests_ts
 from src.tools.verify_pom import verify_pom
 from src.tools.repair import repair_file
 
@@ -37,7 +37,7 @@ def main() -> int:
         return [
             types.Tool(
                 name="generate_tests_full",
-                description="🎯 Complete pipeline: Generate Playwright tests for a website. Crawls the site, creates Page Object Models, and generates test files.",
+                description="Complete pipeline: Generate Playwright tests for a website. Crawls the site, creates Page Object Models, and generates test files.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -60,7 +60,7 @@ def main() -> int:
             ),
             types.Tool(
                 name="crawl_links",
-                description="🕷️ Crawl and discover all links on a website",
+                description="Crawl and discover all links on a website",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -74,7 +74,7 @@ def main() -> int:
             ),
             types.Tool(
                 name="scan_site",
-                description="🔍 Scan a URL and analyze its structure",
+                description="Scan a URL and analyze its structure",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -88,7 +88,7 @@ def main() -> int:
             ),
             types.Tool(
                 name="extract_model",
-                description="📊 Extract UI model from a webpage (buttons, forms, links, etc.)",
+                description="Extract UI model from a webpage (buttons, forms, links, etc.)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -106,7 +106,7 @@ def main() -> int:
             ),
             types.Tool(
                 name="generate_pom",
-                description="📝 Generate Page Object Model from UI model",
+                description="Generate Page Object Model from UI model",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -123,26 +123,8 @@ def main() -> int:
                 },
             ),
             types.Tool(
-                name="generate_test",
-                description="🧪 Generate test file from Page Object Model",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "pom_path": {
-                            "type": "string",
-                            "description": "Path to the POM file",
-                        },
-                        "stories": {
-                            "type": "string",
-                            "description": "Optional user stories to guide test generation",
-                        },
-                    },
-                    "required": ["pom_path"],
-                },
-            ),
-            types.Tool(
                 name="verify_pom",
-                description="✅ Verify and validate a Page Object Model file",
+                description="Verify and validate a Page Object Model file",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -156,7 +138,7 @@ def main() -> int:
             ),
             types.Tool(
                 name="repair_file",
-                description="🔧 Repair syntax errors in generated files",
+                description="Repair syntax errors in generated files",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -174,7 +156,7 @@ def main() -> int:
             ),
             types.Tool(
                 name="quick_start",
-                description="🚀 Quick demo: Generate tests for the-internet.herokuapp.com (5 pages)",
+                description="Quick demo: Generate tests for the-internet.herokuapp.com (2 pages)",
                 inputSchema={
                     "type": "object",
                     "properties": {},
@@ -193,22 +175,25 @@ def main() -> int:
             max_pages = arguments.get("max_pages", 10)
             stories = arguments.get("stories", "")
 
-            # Execute pipeline
             result = await pipeline.execute(url, max_pages, stories)
             
-            # Build response
-            response_text = f"""✅ Test Generation Complete!
+            response_text = f"""Test Generation Complete ✅
 
-📊 Summary:
-• Total pages processed: {result.total_processed}
-• Errors encountered: {result.total_errors}
-• Output directory: out/
+Summary:
+- Total pages processed: {result.total_processed}
+- Errors encountered: {result.total_errors}
+- Output directory: out/
 
-📁 Generated Files:
-• Page Object Models: out/poms/
-• Test Files: out/tests/
+Generated Files:
+- Page Object Models (Python): out/poms/
+- Test Files (TypeScript): out/tests/
 
-You can now run the tests with Playwright!
+🎭 Playwright UI is now opening automatically!
+
+You can also run tests manually:
+- npx playwright test --ui (UI mode)
+- npx playwright test (headless)
+- npx playwright test --headed (with browser)
 """
             return [types.TextContent(type="text", text=response_text)]
 
@@ -255,23 +240,14 @@ You can now run the tests with Playwright!
             response_text = f"Generated POM: {result}"
             return [types.TextContent(type="text", text=response_text)]
 
-        elif name == "generate_test":
-            pom_path = arguments.get("pom_path")
-            stories = arguments.get("stories", "")
-            if not pom_path:
-                raise ValueError("pom_path is required")
-            
-            result = generate_tests(pom_path, stories)
-            response_text = f"Generated test: {result}"
-            return [types.TextContent(type="text", text=response_text)]
-
         elif name == "verify_pom":
             pom_path = arguments.get("pom_path")
             if not pom_path:
                 raise ValueError("pom_path is required")
             
             is_valid, message = verify_pom(pom_path)
-            response_text = f"{'✅' if is_valid else '❌'} {pom_path}\n{message}"
+            status = "Valid" if is_valid else "Invalid"
+            response_text = f"{status}: {pom_path}\n{message}"
             return [types.TextContent(type="text", text=response_text)]
 
         elif name == "repair_file":
@@ -285,8 +261,25 @@ You can now run the tests with Playwright!
             return [types.TextContent(type="text", text=response_text)]
 
         elif name == "quick_start":
-            result = await pipeline.execute("https://the-internet.herokuapp.com", 5)
-            response_text = f"Demo complete: {result.total_processed} pages, {result.total_errors} errors\nCheck out/ directory"
+            result = await pipeline.execute("https://the-internet.herokuapp.com", 2)
+            response_text = f"""Demo Complete ✅
+
+Summary:
+- Total pages processed: {result.total_processed}
+- Errors encountered: {result.total_errors}
+- Output directory: out/
+
+Generated Files:
+- Page Object Models (2 POMs): out/poms/
+- Test Files (2 Tests): out/tests/
+
+🎭 Playwright UI is now opening automatically!
+
+You can also run tests manually:
+- npx playwright test --ui (UI mode)
+- npx playwright test (headless)
+- npx playwright test --headed (with browser)
+"""
             return [types.TextContent(type="text", text=response_text)]
 
         raise ValueError(f"Unknown tool: {name}")

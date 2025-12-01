@@ -1,5 +1,7 @@
 """LangGraph pipeline for Playwright test generation."""
 
+import asyncio
+import subprocess
 from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
@@ -9,11 +11,12 @@ load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 from src.core.schemas import Ctx, PageJob
 from src.core.colors import print_info, print_success, print_error, print_section, print_header
+from src.core.config import TestGenerationConfig, DEFAULT_CONFIG
 from src.tools.crawl_links import crawl_links
 from src.tools.scan_site import scan_site
 from src.tools.extract_model import extract_model
 from src.tools.generate_pom import generate_pom
-from src.tools.generate_tests import generate_tests
+from src.tools.generate_tests_ts import generate_tests_ts
 from src.tools.verify_pom import verify_pom
 from src.tools.repair import repair_file
 
@@ -21,8 +24,9 @@ from src.tools.repair import repair_file
 class PlaywrightPipeline:
     """LangGraph workflow for test generation."""
 
-    def __init__(self):
+    def __init__(self, config: TestGenerationConfig = None):
         """Initialize the pipeline."""
+        self.config = config or DEFAULT_CONFIG
         self.graph = self._build_graph()
 
     def _build_graph(self):
@@ -65,12 +69,12 @@ class PlaywrightPipeline:
                         word.capitalize() for word in url_part.replace("-", "_").split("_")
                     ) or "HomePage"
                     
-                    # Generate POM
-                    pom_path = generate_pom(class_name, model)
+                    # Generate POM (with AI enhancement based on config)
+                    pom_path = generate_pom(class_name, model, use_ai=self.config.enhance_pom)
                     job.pom_path = pom_path
                     
-                    # Generate Tests
-                    test_path = generate_tests(pom_path)
+                    # Generate TypeScript Tests (instead of Python)
+                    test_path = generate_tests_ts(pom_path, state.stories)
                     job.test_path = test_path
                     
                     print_success(f"[{idx}/{len(state.links)}] {class_name}")
@@ -126,6 +130,29 @@ class PlaywrightPipeline:
             
             print_success(f"Processed: {len(state.jobs)}, Success: {successful}, Failed: {failed}")
             return state
+        
+        def open_playwright_ui_node(state: Ctx) -> Ctx:
+            """Step 6: Open Playwright UI."""
+            # Only open if we have successful tests
+            successful = len([j for j in state.jobs.values() if not j.errors])
+            if successful > 0:
+                print_section("Opening Playwright UI")
+                try:
+                    # Ensure we're in the out directory where tests are
+                    out_dir = Path("out").resolve()
+                    if out_dir.exists():
+                        print_info("Starting Playwright UI...")
+                        # Open Playwright UI in background (non-blocking)
+                        subprocess.Popen(
+                            ["npx", "playwright", "test", "--ui"],
+                            cwd=str(out_dir),
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+                        print_success("Playwright UI opened!")
+                except Exception as e:
+                    print_error(f"Could not open Playwright UI: {str(e)}")
+            return state
 
         # Build workflow
         workflow = StateGraph(Ctx)
@@ -136,6 +163,7 @@ class PlaywrightPipeline:
         workflow.add_node("verify", verify_node)
         workflow.add_node("repair", repair_node)
         workflow.add_node("summary", summary_node)
+        workflow.add_node("open_ui", open_playwright_ui_node)
         
         # Add edges (workflow path)
         workflow.set_entry_point("crawl")
@@ -143,14 +171,19 @@ class PlaywrightPipeline:
         workflow.add_edge("process", "verify")
         workflow.add_edge("verify", "repair")
         workflow.add_edge("repair", "summary")
-        workflow.add_edge("summary", END)
+        workflow.add_edge("summary", "open_ui")
+        workflow.add_edge("open_ui", END)
         
         return workflow.compile()
 
-    async def execute(self, base_url: str, max_pages: int = 10, stories: Optional[str] = None) -> Ctx:
-        """Execute the pipeline."""
+    async def execute(self, base_url: str, max_pages: int = 10, stories: Optional[str] = None, 
+                     config: TestGenerationConfig = None) -> Ctx:
+        """Execute the pipeline with optional config."""
+        if config:
+            self.config = config
+        
         print_header("PLAYWRIGHT TEST GENERATOR")
-        print_info(f"URL: {base_url} | Max: {max_pages}")
+        print_info(f"URL: {base_url} | Max: {max_pages} | Quality: {self.config.quality}")
         
         initial_state = Ctx(
             base_url=base_url,
