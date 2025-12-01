@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "py-pw-langgraph"
+version = "0.1.0"
+description = "MCP-powered Playwright test generation with LangGraph"
+requires-python = ">=3.10"
+dependencies = [
+    "langgraph>=0.2.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "pydantic>=2.8",
+    "playwright>=1.48",
+    "pytest>=8.0",
+    "modelcontextprotocol>=0.1.0",
+    "python-dotenv>=1.0.0",
+    "beautifulsoup4>=4.12.0",
+]
