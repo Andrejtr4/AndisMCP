@@ -1,4 +1,4 @@
-"""Generate TypeScript Playwright tests with AI-powered scenarios."""
+"""Tool zum Generieren von TypeScript Playwright-Tests mittels LLM."""
 
 import os
 import json
@@ -8,24 +8,37 @@ from src.core.prompts import GENERATE_TEST_PROMPT_TS, EXTRACT_TEST_SCENARIOS_PRO
 
 
 def generate_tests_ts(pom_path: str, stories: str = "") -> str:
-    """Generate comprehensive TypeScript Playwright tests using LLM."""
+    """
+    Generiert umfassende TypeScript Playwright-Tests mithilfe eines LLM.
     
+    Args:
+        pom_path: Pfad zur POM-Datei
+        stories: Optionale User Stories zur Test-Generierung
+    
+    Returns:
+        Pfad zur generierten Test-Datei
+    """
+    # Hole API-Key
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("OPENAI_API_KEY not set")
     
+    # Lese POM-Datei
     pom_file = Path(pom_path)
     class_name = pom_file.stem
     pom_content = pom_file.read_text()
     
+    # Extrahiere URL und Elemente aus POM
     url = _extract_url_from_pom(pom_content)
     elements = _extract_elements_from_pom(pom_content)
     
-    # NEW: Scan the actual page to get real page structure
+    # NEU: Scanne die echte Seite um die reale Struktur zu bekommen
     page_snapshot = _scan_page_with_playwright(url)
     
+    # Generiere Test-Szenarien mit LLM
     scenarios = _generate_test_scenarios(url, elements, api_key)
     
+    # Generiere den finalen Test-Code
     tests_content = _generate_test_code(
         class_name=class_name,
         url=url,
@@ -36,9 +49,11 @@ def generate_tests_ts(pom_path: str, stories: str = "") -> str:
         api_key=api_key
     )
     
-    tests_dir = Path("out/tests")
+    # Erstelle Output-Verzeichnis
+    tests_dir = Path("out/TESTS")
     tests_dir.mkdir(parents=True, exist_ok=True)
     
+    # Schreibe Test-Datei
     filename = f"{class_name.lower()}.spec.ts"
     file_path = tests_dir / filename
     file_path.write_text(tests_content)
@@ -47,7 +62,7 @@ def generate_tests_ts(pom_path: str, stories: str = "") -> str:
 
 
 def _generate_test_scenarios(url: str, elements: list, api_key: str) -> list:
-    """Use LLM to identify test scenarios."""
+    """Nutzt LLM um Test-Szenarien zu identifizieren basierend auf Seitentyp."""
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2, api_key=api_key)
     
     # Detect page type

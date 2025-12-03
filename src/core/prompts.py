@@ -1,8 +1,8 @@
 """Prompts for AI-powered code generation.
 
 ⚙️ ARCHITEKTUR (FEST KONFIGURIERT):
-✅ POMs werden IMMER in Python generiert (out/poms/*.py)
-✅ Tests werden IMMER in TypeScript generiert (out/tests/*.spec.ts)
+✅ POMs werden IMMER in Python generiert (out/POMS/*.py)
+✅ Tests werden IMMER in TypeScript generiert (out/TESTS/*.spec.ts)
 ✅ Playwright UI öffnet automatisch nach der Generierung
 """
 
@@ -10,8 +10,8 @@
 IMPROVE_POM_PROMPT = """You are an expert in Playwright Page Object Models. Improve this Python POM.
 
 ## ⚙️ ARCHITEKTUR (FEST KONFIGURIERT - NICHT ÄNDERBAR)
-✅ **POMs werden IMMER in Python generiert** (out/poms/*.py)
-✅ **Tests werden IMMER in TypeScript generiert** (out/tests/*.spec.ts)
+✅ **POMs werden IMMER in Python generiert** (out/POMS/*.py)
+✅ **Tests werden IMMER in TypeScript generiert** (out/TESTS/*.spec.ts)
 ✅ **Playwright UI öffnet automatisch nach der Generierung**
 
 Du verbesserst das Python Page Object Model. Tests werden später automatisch in TypeScript generiert.
@@ -47,8 +47,8 @@ Start directly with the docstring and imports.
 EXTRACT_INSTRUCTIONS = """Extract interactive UI elements from this page.
 
 ## ⚙️ ARCHITEKTUR (FEST KONFIGURIERT - NICHT ÄNDERBAR)
-✅ **POMs werden IMMER in Python generiert** (out/poms/*.py)
-✅ **Tests werden IMMER in TypeScript generiert** (out/tests/*.spec.ts)
+✅ **POMs werden IMMER in Python generiert** (out/POMS/*.py)
+✅ **Tests werden IMMER in TypeScript generiert** (out/TESTS/*.spec.ts)
 ✅ **Playwright UI öffnet automatisch nach der Generierung**
 
 Du extrahierst UI-Elemente für Python Page Object Models.
@@ -89,8 +89,8 @@ Return ONLY JSON, no markdown, no explanations.
 EXTRACT_TEST_SCENARIOS_PROMPT = """Analyze this page and identify key test scenarios.
 
 ## ⚙️ ARCHITEKTUR (FEST KONFIGURIERT - NICHT ÄNDERBAR)
-✅ **POMs werden IMMER in Python generiert** (out/poms/*.py)
-✅ **Tests werden IMMER in TypeScript generiert** (out/tests/*.spec.ts)
+✅ **POMs werden IMMER in Python generiert** (out/POMS/*.py)
+✅ **Tests werden IMMER in TypeScript generiert** (out/TESTS/*.spec.ts)
 ✅ **Playwright UI öffnet automatisch nach der Generierung**
 
 URL: {url}
@@ -116,8 +116,8 @@ Return ONLY the JSON, no additional text.
 GENERATE_TEST_PROMPT_TS = """You are an expert Playwright test engineer. Generate comprehensive TypeScript tests.
 
 ## ⚙️ ARCHITEKTUR (FEST KONFIGURIERT - NICHT ÄNDERBAR)
-✅ **POMs werden IMMER in Python generiert** (out/poms/*.py)
-✅ **Tests werden IMMER in TypeScript generiert** (out/tests/*.spec.ts)
+✅ **POMs werden IMMER in Python generiert** (out/POMS/*.py)
+✅ **Tests werden IMMER in TypeScript generiert** (out/TESTS/*.spec.ts)
 ✅ **Playwright UI öffnet automatisch nach der Generierung**
 
 Du generierst NUR TypeScript/Playwright Tests. Die POMs sind bereits in Python vorhanden.

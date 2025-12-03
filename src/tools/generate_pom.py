@@ -1,4 +1,4 @@
-"""Generate Python Page Object Model class with AI enhancement."""
+"""Tool zum Generieren von Page Object Models (POMs) aus UI-Modellen."""
 
 import os
 from pathlib import Path
@@ -9,26 +9,32 @@ from src.core.prompts import IMPROVE_POM_PROMPT
 
 def generate_pom(name: str, model: Dict[str, Any], use_ai: bool = True) -> str:
     """
-    Generate a Python POM class file from a PageModel.
-    Uses AI to enhance POMs with best practices if use_ai is True (default).
+    Generiert eine Python POM-Klassen-Datei aus einem PageModel.
+    Nutzt optional KI um POMs mit Best Practices zu verbessern.
 
     Args:
-        name: Class name (e.g., 'MainPage')
-        model: PageModel instance
-        use_ai: Use AI to improve POM with best practices (default: True)
+        name: Klassenname (z.B. 'MainPage')
+        model: PageModel-Instanz mit UI-Elementen
+        use_ai: KI zur Verbesserung des POMs nutzen (Standard: True)
 
     Returns:
-        Path to generated POM file
+        Pfad zur generierten POM-Datei
     """
-    poms_dir = Path("out/poms")
+    # Erstelle Output-Verzeichnis für POMs
+    poms_dir = Path("out/POMS")
     poms_dir.mkdir(parents=True, exist_ok=True)
 
+    # Fallback falls kein Name angegeben
     if not name:
         name = "GeneratedPage"
 
+    # Konvertiere Name in CamelCase Klassenname
     class_name = "".join(word.capitalize() for word in name.split("_"))
+    
+    # Generiere Basis-POM
     basic_pom = _generate_basic_pom(class_name, model)
     
+    # Optional: Verbessere POM mit KI
     if use_ai:
         try:
             enhanced_pom = _enhance_pom_with_ai(basic_pom, class_name, model)
@@ -38,6 +44,7 @@ def generate_pom(name: str, model: Dict[str, Any], use_ai: bool = True) -> str:
     else:
         enhanced_pom = basic_pom
 
+    # Schreibe POM-Datei
     filename = f"{class_name}.py"
     file_path = poms_dir / filename
     file_path.write_text(enhanced_pom)
@@ -46,7 +53,7 @@ def generate_pom(name: str, model: Dict[str, Any], use_ai: bool = True) -> str:
 
 
 def _generate_basic_pom(class_name: str, model: Dict[str, Any]) -> str:
-    """Generate basic POM template."""
+    """Generiert ein Basis-POM-Template ohne KI-Verbesserung."""
     locator_inits = []
     elements = model.get("elements", []) if isinstance(model, dict) else model.elements
     

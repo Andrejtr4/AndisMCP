@@ -1,42 +1,42 @@
-"""ANSI color utilities for terminal output."""
+"""ANSI-Farb-Utilities für farbige Terminal-Ausgabe."""
 
 class Color:
-    """ANSI color codes."""
-    BLUE = "\033[94m"
-    CYAN = "\033[96m"
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    RED = "\033[91m"
-    WHITE = "\033[97m"
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
+    """ANSI Escape-Codes für Farben im Terminal."""
+    BLUE = "\033[94m"      # Blau
+    CYAN = "\033[96m"      # Cyan
+    GREEN = "\033[92m"     # Grün
+    YELLOW = "\033[93m"    # Gelb
+    RED = "\033[91m"       # Rot
+    WHITE = "\033[97m"     # Weiß
+    RESET = "\033[0m"      # Zurücksetzen
+    BOLD = "\033[1m"       # Fett
 
 def print_header(text):
-    """Print header."""
+    """Druckt einen großen Header mit Rahmen."""
     print(f"\n{Color.BOLD}{Color.BLUE}{'='*60}")
     print(f"  {text}")
     print(f"{'='*60}{Color.RESET}\n")
 
 def print_section(text):
-    """Print section."""
+    """Druckt eine Sektion-Überschrift mit Pfeil."""
     print(f"{Color.BOLD}{Color.CYAN}► {text}{Color.RESET}")
 
 def print_success(text):
-    """Print success."""
+    """Druckt eine Erfolgsmeldung in Grün mit Häkchen."""
     print(f"{Color.GREEN}✓ {text}{Color.RESET}")
 
 def print_error(text):
-    """Print error."""
+    """Druckt eine Fehlermeldung in Rot mit X."""
     print(f"{Color.RED}✗ {text}{Color.RESET}")
 
 def print_info(text):
-    """Print info."""
+    """Druckt eine Info-Meldung in Gelb mit Info-Symbol."""
     print(f"{Color.YELLOW}ℹ {text}{Color.RESET}")
 
 def print_progress(text):
-    """Print progress."""
+    """Druckt Fortschrittsmeldung in Cyan mit Pfeil."""
     print(f"{Color.CYAN}→ {text}{Color.RESET}")
 
 def print_summary(text):
-    """Print summary."""
+    """Druckt eine Zusammenfassung in Weiß/Fett."""
     print(f"\n{Color.BOLD}{Color.WHITE}{text}{Color.RESET}")

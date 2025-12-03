@@ -1,4 +1,4 @@
-"""Configuration for test generation quality."""
+"""Konfigurations-Klasse für die Qualität der Test-Generierung."""
 
 from dataclasses import dataclass
 from typing import Literal
@@ -6,29 +6,33 @@ from typing import Literal
 
 @dataclass
 class TestGenerationConfig:
-    """Configure test generation behavior."""
+    """
+    Konfiguriert das Verhalten der Test-Generierung.
     
-    # Quality level
+    Steuert Qualitätsstufen, AI-Enhancement und Test-Typen.
+    """
+    
+    # Qualitätsstufe: basic (schnell), standard (balanced), comprehensive (vollständig)
     quality: Literal["basic", "standard", "comprehensive"] = "standard"
     
-    # Test types to generate
-    include_happy_path: bool = True
-    include_error_cases: bool = True
-    include_edge_cases: bool = True
-    include_accessibility: bool = False
+    # Welche Test-Typen sollen generiert werden?
+    include_happy_path: bool = True      # Normale Benutzung
+    include_error_cases: bool = True     # Fehlerszenarien
+    include_edge_cases: bool = True      # Grenzfälle
+    include_accessibility: bool = False  # Barrierefreiheit-Tests
     
-    # AI enhancement
-    enhance_pom: bool = True  # Auto-enhance POMs during generation
-    enhance_tests: bool = True  # Generate AI-powered tests
+    # KI-Verbesserung aktivieren?
+    enhance_pom: bool = True   # POMs automatisch mit KI verbessern
+    enhance_tests: bool = True # Tests mit KI-Power generieren
     
-    # AI model
+    # Welches KI-Modell nutzen?
     model: str = "gpt-4o-mini"
-    temperature: float = 0.1
+    temperature: float = 0.1   # Niedrige Temperatur = deterministischer
     
-    # Code style
-    use_type_hints: bool = True
-    use_async: bool = True
-    max_tests_per_page: int = 5
+    # Code-Style-Einstellungen
+    use_type_hints: bool = True  # Type-Hints in generiertem Code
+    use_async: bool = True       # Async/await nutzen
+    max_tests_per_page: int = 5  # Maximale Anzahl Tests pro Seite
     
     @classmethod
     def basic(cls):

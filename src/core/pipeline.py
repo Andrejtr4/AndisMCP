@@ -1,4 +1,4 @@
-"""LangGraph pipeline for Playwright test generation."""
+"""LangGraph Pipeline für Playwright Test-Generierung."""
 
 import asyncio
 import subprocess
@@ -7,6 +7,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, END
 
+# Lade Umgebungsvariablen aus .env-Datei
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 from src.core.schemas import Ctx, PageJob
@@ -22,18 +23,27 @@ from src.tools.repair import repair_file
 
 
 class PlaywrightPipeline:
-    """LangGraph workflow for test generation."""
+    """
+    LangGraph Workflow für die Test-Generierung.
+    
+    Orchestriert den gesamten Prozess:
+    1. Crawling → 2. Processing → 3. Verify → 4. Repair → 5. Summary → 6. UI öffnen
+    """
 
     def __init__(self, config: TestGenerationConfig = None):
-        """Initialize the pipeline."""
+        """Initialisiere die Pipeline mit optionaler Konfiguration."""
         self.config = config or DEFAULT_CONFIG
         self.graph = self._build_graph()
 
     def _build_graph(self):
-        """Build the LangGraph workflow."""
+        """Baut den LangGraph Workflow mit allen Nodes und Edges."""
 
         async def crawl_node(state: Ctx) -> Ctx:
-            """Step 1: Crawl base URL and find all links."""
+            """
+            SCHRITT 1: Crawle Basis-URL und finde alle Links.
+            
+            Nutzt Playwright um alle Links auf der Startseite zu finden.
+            """
             print_section("Crawling")
             try:
                 result = await crawl_links(state.base_url)
@@ -46,7 +56,15 @@ class PlaywrightPipeline:
                 return state
 
         async def process_pages_node(state: Ctx) -> Ctx:
-            """Step 2: Process all pages."""
+            """
+            SCHRITT 2: Verarbeite alle gefundenen Seiten.
+            
+            Für jede Seite:
+            - Scanne DOM
+            - Extrahiere UI-Modell mit LLM
+            - Generiere POM (mit optionaler KI-Verbesserung)
+            - Generiere TypeScript-Tests
+            """
             if not state.links:
                 return state
 
@@ -55,25 +73,25 @@ class PlaywrightPipeline:
                 job = PageJob(url=url)
                 
                 try:
-                    # Scan
+                    # 2.1: Scanne die Seite und hole DOM
                     page_data = await scan_site(url)
                     job.dom = page_data.get("dom", "")
                     
-                    # Extract with LLM
+                    # 2.2: Extrahiere UI-Modell mit LLM
                     model = extract_model(url, job.dom, state.stories)
                     job.model = model
                     
-                    # Generate class name
+                    # 2.3: Generiere Klassennamen aus URL
                     url_part = url.split("/")[-1] or url.split("/")[-2]
                     class_name = "".join(
                         word.capitalize() for word in url_part.replace("-", "_").split("_")
                     ) or "HomePage"
                     
-                    # Generate POM (with AI enhancement based on config)
+                    # 2.4: Generiere POM (mit KI-Enhancement je nach Config)
                     pom_path = generate_pom(class_name, model, use_ai=self.config.enhance_pom)
                     job.pom_path = pom_path
                     
-                    # Generate TypeScript Tests (instead of Python)
+                    # 2.5: Generiere TypeScript Tests
                     test_path = generate_tests_ts(pom_path, state.stories)
                     job.test_path = test_path
                     
@@ -90,7 +108,11 @@ class PlaywrightPipeline:
             return state
 
         def verify_node(state: Ctx) -> Ctx:
-            """Step 3: Verify POMs."""
+            """
+            SCHRITT 3: Verifiziere alle generierten POMs.
+            
+            Prüft ob die POMs syntaktisch korrekt sind.
+            """
             if not state.jobs:
                 return state
                 
@@ -106,7 +128,11 @@ class PlaywrightPipeline:
             return state
 
         def repair_node(state: Ctx) -> Ctx:
-            """Step 4: Repair POMs."""
+            """
+            SCHRITT 4: Repariere fehlerhafte POMs.
+            
+            Nutzt LLM um Syntax-Fehler automatisch zu beheben.
+            """
             has_errors = any(job.errors for job in state.jobs.values())
             if not has_errors:
                 return state
@@ -123,7 +149,11 @@ class PlaywrightPipeline:
             return state
 
         def summary_node(state: Ctx) -> Ctx:
-            """Step 5: Summary."""
+            """
+            SCHRITT 5: Zeige Zusammenfassung.
+            
+            Gibt Statistiken über erfolgreiche/fehlgeschlagene Jobs aus.
+            """
             print_section("Summary")
             successful = len([j for j in state.jobs.values() if not j.errors])
             failed = len([j for j in state.jobs.values() if j.errors])
@@ -132,8 +162,12 @@ class PlaywrightPipeline:
             return state
         
         def open_playwright_ui_node(state: Ctx) -> Ctx:
-            """Step 6: Open Playwright UI."""
-            # Only open if we have successful tests
+            """
+            SCHRITT 6: Öffne Playwright UI im Browser.
+            
+            Startet automatisch die Playwright Test-UI falls Tests erfolgreich generiert wurden.
+            """
+            # Öffne nur wenn wir erfolgreiche Tests haben
             successful = len([j for j in state.jobs.values() if not j.errors])
             if successful > 0:
                 print_section("Opening Playwright UI")
@@ -154,42 +188,58 @@ class PlaywrightPipeline:
                     print_error(f"Could not open Playwright UI: {str(e)}")
             return state
 
-        # Build workflow
+        # === Baue den Workflow-Graphen ===
         workflow = StateGraph(Ctx)
         
-        # Add nodes
-        workflow.add_node("crawl", crawl_node)
-        workflow.add_node("process", process_pages_node)
-        workflow.add_node("verify", verify_node)
-        workflow.add_node("repair", repair_node)
-        workflow.add_node("summary", summary_node)
-        workflow.add_node("open_ui", open_playwright_ui_node)
+        # Füge alle Nodes (Schritte) hinzu
+        workflow.add_node("crawl", crawl_node)              # 1. Crawling
+        workflow.add_node("process", process_pages_node)    # 2. Processing
+        workflow.add_node("verify", verify_node)            # 3. Verification
+        workflow.add_node("repair", repair_node)            # 4. Reparatur
+        workflow.add_node("summary", summary_node)          # 5. Zusammenfassung
+        workflow.add_node("open_ui", open_playwright_ui_node)  # 6. UI öffnen
         
-        # Add edges (workflow path)
-        workflow.set_entry_point("crawl")
-        workflow.add_edge("crawl", "process")
-        workflow.add_edge("process", "verify")
-        workflow.add_edge("verify", "repair")
-        workflow.add_edge("repair", "summary")
-        workflow.add_edge("summary", "open_ui")
-        workflow.add_edge("open_ui", END)
+        # Definiere die Workflow-Reihenfolge (Edges = Pfeile zwischen Nodes)
+        workflow.set_entry_point("crawl")          # Start bei "crawl"
+        workflow.add_edge("crawl", "process")      # crawl → process
+        workflow.add_edge("process", "verify")     # process → verify
+        workflow.add_edge("verify", "repair")      # verify → repair
+        workflow.add_edge("repair", "summary")     # repair → summary
+        workflow.add_edge("summary", "open_ui")    # summary → open_ui
+        workflow.add_edge("open_ui", END)          # open_ui → ENDE
         
+        # Kompiliere den Graphen zu einem ausführbaren Workflow
         return workflow.compile()
 
     async def execute(self, base_url: str, max_pages: int = 10, stories: Optional[str] = None, 
                      config: TestGenerationConfig = None) -> Ctx:
-        """Execute the pipeline with optional config."""
+        """
+        Führt die komplette Pipeline aus.
+        
+        Args:
+            base_url: Start-URL für Crawling
+            max_pages: Maximale Anzahl zu verarbeitender Seiten
+            stories: Optionale User Stories für Test-Generierung
+            config: Optionale Konfiguration (überschreibt Standard)
+        
+        Returns:
+            Finaler Context mit allen Ergebnissen
+        """
+        # Überschreibe Config falls angegeben
         if config:
             self.config = config
         
+        # Zeige Start-Info
         print_header("PLAYWRIGHT TEST GENERATOR")
         print_info(f"URL: {base_url} | Max: {max_pages} | Quality: {self.config.quality}")
         
+        # Erstelle initialen State
         initial_state = Ctx(
             base_url=base_url,
             max_pages=max_pages,
             stories=stories or "",
         )
         
+        # Führe den Workflow aus und gib Ergebnis zurück
         result_dict = await self.graph.ainvoke(initial_state.model_dump())
         return Ctx(**result_dict)
