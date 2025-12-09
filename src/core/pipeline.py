@@ -2,13 +2,16 @@
 
 import asyncio
 import subprocess
+import os
 from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, END
+from langchain_openai import AzureChatOpenAI
 
-# Lade Umgebungsvariablen aus .env-Datei
+
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
+
 
 from src.core.schemas import Ctx, PageJob
 from src.core.colors import print_info, print_success, print_error, print_section, print_header
@@ -33,6 +36,13 @@ class PlaywrightPipeline:
     def __init__(self, config: TestGenerationConfig = None):
         """Initialisiere die Pipeline mit optionaler Konfiguration."""
         self.config = config or DEFAULT_CONFIG
+        
+        self.llm_gpt5 = AzureChatOpenAI(
+            base_url="https://api.competence-centre-cc-genai-prod.enbw-az.cloud/openai/deployments/gpt-5",
+            openai_api_version="2024-10-21",
+            api_key=os.environ.get("api_key", ""),
+        )
+        
         self.graph = self._build_graph()
 
     def _build_graph(self):
@@ -188,7 +198,7 @@ class PlaywrightPipeline:
                     print_error(f"Could not open Playwright UI: {str(e)}")
             return state
 
-        # === Baue den Workflow-Graphen ===
+        # Workflow-Graph
         workflow = StateGraph(Ctx)
         
         # Füge alle Nodes (Schritte) hinzu

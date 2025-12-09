@@ -1,1 +1,1 @@
-"""Graph nodes for the POM generation pipeline."""
+# Damit Python dieses Verzeichnis als Paket erkennt

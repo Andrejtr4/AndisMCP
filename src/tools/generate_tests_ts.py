@@ -3,25 +3,26 @@
 import os
 import json
 from pathlib import Path
-from langchain_openai import ChatOpenAI
 from src.core.prompts import GENERATE_TEST_PROMPT_TS, EXTRACT_TEST_SCENARIOS_PROMPT
 
 
-def generate_tests_ts(pom_path: str, stories: str = "") -> str:
+def generate_tests_ts(pom_path: str, stories: str = "", llm=None) -> str:
     """
     Generiert umfassende TypeScript Playwright-Tests mithilfe eines LLM.
     
     Args:
         pom_path: Pfad zur POM-Datei
         stories: Optionale User Stories zur Test-Generierung
+        llm: LLM-Client aus der Pipeline (AzureChatOpenAI)
     
     Returns:
         Pfad zur generierten Test-Datei
     """
-    # Hole API-Key
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not set")
+    # Wenn kein LLM übergeben, verwende die Pipeline
+    if llm is None:
+        from src.core.pipeline import PlaywrightPipeline
+        pipeline = PlaywrightPipeline()
+        llm = pipeline.llm_gpt5
     
     # Lese POM-Datei
     pom_file = Path(pom_path)
@@ -36,7 +37,7 @@ def generate_tests_ts(pom_path: str, stories: str = "") -> str:
     page_snapshot = _scan_page_with_playwright(url)
     
     # Generiere Test-Szenarien mit LLM
-    scenarios = _generate_test_scenarios(url, elements, api_key)
+    scenarios = _generate_test_scenarios(url, elements, llm)
     
     # Generiere den finalen Test-Code
     tests_content = _generate_test_code(
@@ -46,7 +47,7 @@ def generate_tests_ts(pom_path: str, stories: str = "") -> str:
         scenarios=scenarios,
         user_stories=stories,
         page_snapshot=page_snapshot,
-        api_key=api_key
+        llm=llm
     )
     
     # Erstelle Output-Verzeichnis
@@ -61,9 +62,8 @@ def generate_tests_ts(pom_path: str, stories: str = "") -> str:
     return str(file_path)
 
 
-def _generate_test_scenarios(url: str, elements: list, api_key: str) -> list:
+def _generate_test_scenarios(url: str, elements: list, llm) -> list:
     """Nutzt LLM um Test-Szenarien zu identifizieren basierend auf Seitentyp."""
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2, api_key=api_key)
     
     # Detect page type
     page_type = _detect_page_type(url, elements)
@@ -78,6 +78,7 @@ def _generate_test_scenarios(url: str, elements: list, api_key: str) -> list:
     content = response.content.strip()
     
     if content.startswith("```"):
+
         content = content[content.find("{"):content.rfind("}") + 1]
     
     try:
@@ -141,9 +142,8 @@ def _extract_elements_by_role(page, role: str) -> list:
 
 
 def _generate_test_code(class_name: str, url: str, elements: list, 
-                        scenarios: list, user_stories: str, page_snapshot: dict, api_key: str) -> str:
+                        scenarios: list, user_stories: str, page_snapshot: dict, llm) -> str:
     """Generate TypeScript test code using LLM."""
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.1, api_key=api_key)
     
     user_stories_section = f"\n## User Stories\n{user_stories}" if user_stories else ""
     

@@ -3,11 +3,10 @@
 import os
 from pathlib import Path
 from typing import Dict, Any
-from langchain_openai import ChatOpenAI
 from src.core.prompts import IMPROVE_POM_PROMPT
 
 
-def generate_pom(name: str, model: Dict[str, Any], use_ai: bool = True) -> str:
+def generate_pom(name: str, model: Dict[str, Any], use_ai: bool = True, llm=None) -> str:
     """
     Generiert eine Python POM-Klassen-Datei aus einem PageModel.
     Nutzt optional KI um POMs mit Best Practices zu verbessern.
@@ -16,6 +15,7 @@ def generate_pom(name: str, model: Dict[str, Any], use_ai: bool = True) -> str:
         name: Klassenname (z.B. 'MainPage')
         model: PageModel-Instanz mit UI-Elementen
         use_ai: KI zur Verbesserung des POMs nutzen (Standard: True)
+        llm: LLM-Client aus der Pipeline (AzureChatOpenAI)
 
     Returns:
         Pfad zur generierten POM-Datei
@@ -37,7 +37,7 @@ def generate_pom(name: str, model: Dict[str, Any], use_ai: bool = True) -> str:
     # Optional: Verbessere POM mit KI
     if use_ai:
         try:
-            enhanced_pom = _enhance_pom_with_ai(basic_pom, class_name, model)
+            enhanced_pom = _enhance_pom_with_ai(basic_pom, class_name, model, llm)
         except Exception as e:
             print(f"AI enhancement failed, using basic POM: {e}")
             enhanced_pom = basic_pom
@@ -105,13 +105,13 @@ class {class_name}:
     return pom_template
 
 
-def _enhance_pom_with_ai(basic_pom: str, class_name: str, model: Dict[str, Any]) -> str:
+def _enhance_pom_with_ai(basic_pom: str, class_name: str, model: Dict[str, Any], llm=None) -> str:
     """Use AI to enhance POM with best practices."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return basic_pom
+    if llm is None:
+        from src.core.pipeline import PlaywrightPipeline
+        pipeline = PlaywrightPipeline()
+        llm = pipeline.llm_gpt5
     
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, api_key=api_key)
     prompt = IMPROVE_POM_PROMPT.format(current_pom=basic_pom)
     response = llm.invoke(prompt)
     improved_content = response.content.strip()

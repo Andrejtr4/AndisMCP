@@ -2,24 +2,25 @@
 
 import os
 from pathlib import Path
-from langchain_openai import ChatOpenAI
 
 
-def repair_file(file_path: str, error_message: str = "") -> str:
+def repair_file(file_path: str, error_message: str = "", llm=None) -> str:
     """
     Repariert eine Python-Datei automatisch mithilfe eines LLM (KI).
     
     Args:
         file_path: Pfad zur zu reparierenden Datei
         error_message: Optionale Fehlermeldung zur besseren Reparatur
+        llm: LLM-Client aus der Pipeline (AzureChatOpenAI)
     
     Returns:
         Der reparierte Code als String
     """
-    # Hole API-Key
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not set")
+    # Wenn kein LLM übergeben, verwende die Pipeline
+    if llm is None:
+        from src.core.pipeline import PlaywrightPipeline
+        pipeline = PlaywrightPipeline()
+        llm = pipeline.llm_gpt5
 
     # Prüfe ob Datei existiert
     file_obj = Path(file_path)
@@ -28,9 +29,6 @@ def repair_file(file_path: str, error_message: str = "") -> str:
 
     # Lese aktuellen (fehlerhaften) Inhalt
     current_content = file_obj.read_text()
-    
-    # Initialisiere LLM mit temperature=0 für deterministische Ergebnisse
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0, api_key=api_key)
 
     # Baue Reparatur-Prompt
     prompt = f"""Fix this Python code:
