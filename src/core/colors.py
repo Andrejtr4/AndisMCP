@@ -1,4 +1,10 @@
 """ANSI-Farb-Utilities für farbige Terminal-Ausgabe."""
+import sys
+import io
+
+# Force UTF-8 encoding for stdout on Windows
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 class Color:
     """ANSI Escape-Codes für Farben im Terminal."""

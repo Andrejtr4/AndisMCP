@@ -18,9 +18,9 @@
 		},
 		"AndisMCP": {
 			"type": "stdio",
-			"command": "${workspaceFolder}/venv/bin/python",
+			"command": "C:/Users/TROFIMA/DerBesteMCP/AndisMCP/venv/Scripts/python",
 			"args": [
-				"${workspaceFolder}/src/mcp_server.py"
+				"C:/Users/TROFIMA/DerBesteMCP/AndisMCP/src/mcp_server.py"
 			]
 		}
 	},
